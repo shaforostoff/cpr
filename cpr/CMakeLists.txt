@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_library(cpr
+add_library(cpr STATIC
         accept_encoding.cpp
         async.cpp
         auth.cpp
@@ -25,6 +25,7 @@ add_library(cpr
         redirect.cpp
         interceptor.cpp
         ssl_ctx.cpp)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os")
 
 add_library(cpr::cpr ALIAS cpr)
 
