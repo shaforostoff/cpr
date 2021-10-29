@@ -7,7 +7,6 @@ add_library(cpr STATIC
         bearer.cpp
         cert_info.cpp
         cookies.cpp
-        cprtypes.cpp
         curl_container.cpp
         curlholder.cpp
         error.cpp
@@ -42,6 +41,7 @@ set_target_properties(cpr
         PROPERTIES
         VERSION ${${PROJECT_NAME}_VERSION}
         SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR})
+set_property(TARGET cpr PROPERTY CXX_STANDARD 17)
 
 # Import GNU common install directory variables
 include(GNUInstallDirs)

@@ -2,11 +2,14 @@
 #define CPR_CPR_TYPES_H
 
 #include <curl/system.h>
+#include <algorithm>
+#include <cctype>
 #include <initializer_list>
 #include <map>
 #include <memory>
 #include <numeric>
 #include <string>
+
 
 namespace cpr {
 
@@ -19,7 +22,7 @@ template <class T>
 class StringHolder {
   public:
     StringHolder() = default;
-    explicit StringHolder(const std::string& str) : str_(str) {}
+    explicit StringHolder(std::string_view str) : str_(str) {}
     explicit StringHolder(std::string&& str) : str_(std::move(str)) {}
     explicit StringHolder(const char* str) : str_(str) {}
     StringHolder(const char* str, size_t len) : str_(str, len) {}
@@ -73,7 +76,7 @@ class StringHolder {
     bool operator!=(const char* rhs) const {
         return str_.c_str() != rhs;
     }
-    bool operator!=(const std::string& rhs) const {
+    bool operator!=(std::string_view rhs) const {
         return str_ != rhs;
     }
     bool operator!=(const StringHolder<T>& rhs) const {
@@ -107,7 +110,7 @@ class Url : public StringHolder<Url> {
   public:
     Url() = default;
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
-    Url(const std::string& url) : StringHolder<Url>(url) {}
+    Url(std::string_view url) : StringHolder<Url>(url) {}
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
     Url(std::string&& url) : StringHolder<Url>(std::move(url)) {}
     // NOLINTNEXTLINE(google-explicit-constructor, hicpp-explicit-conversions)
@@ -123,7 +126,14 @@ class Url : public StringHolder<Url> {
 };
 
 struct CaseInsensitiveCompare {
-    bool operator()(const std::string& a, const std::string& b) const noexcept;
+    template <class T, class U> auto operator()(T&& t, U&& u) const
+    {
+        std::string_view a(t), b(u);
+        return std::lexicographical_compare(
+            a.begin(), a.end(), b.begin(), b.end(),
+            [](unsigned char ac, unsigned char bc) { return std::tolower(ac) < std::tolower(bc); });
+	}
+	typedef bool is_transparent;
 };
 
 using Header = std::map<std::string, std::string, CaseInsensitiveCompare>;
