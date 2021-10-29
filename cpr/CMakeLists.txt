@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
+else()
+	set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld -lc++abi")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif()
+
 add_library(cpr STATIC
         accept_encoding.cpp
         async.cpp
@@ -24,7 +33,6 @@ add_library(cpr STATIC
         redirect.cpp
         interceptor.cpp
         ssl_ctx.cpp)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os")
 
 add_library(cpr::cpr ALIAS cpr)
 
