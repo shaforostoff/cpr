@@ -26,9 +26,9 @@ int progressUserFunction(const ProgressCallback* progress, double dltotal, doubl
 int progressUserFunction(const ProgressCallback* progress, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 #endif
 int debugUserFunction(CURL* handle, curl_infotype type, char* data, size_t size, const DebugCallback* debug);
-std::vector<std::string> split(const std::string& to_split, char delimiter);
-std::string urlEncode(const std::string& s);
-std::string urlDecode(const std::string& s);
+std::vector<std::string_view> split(std::string_view to_split, char delimiter);
+std::string urlEncode(string_view_type s);
+std::string urlDecode(string_view_type s);
 
 /**
  * Override the content of the provided string to hide sensitive data. The
@@ -37,7 +37,7 @@ std::string urlDecode(const std::string& s);
  * https://github.com/ojeda/secure_clear/blob/master/example-implementation/secure_clear.h
  **/
 void secureStringClear(std::string& s);
-bool isTrue(const std::string& s);
+bool isTrue(std::string_view s);
 
 } // namespace util
 } // namespace cpr

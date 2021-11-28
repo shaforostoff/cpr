@@ -24,25 +24,30 @@ CurlHolder::~CurlHolder() {
     curl_easy_cleanup(handle);
 }
 
-std::string CurlHolder::urlEncode(const std::string& s) const {
+std::string CurlHolder::urlEncode(string_view_type s) const {
     assert(handle);
-    char* output = curl_easy_escape(handle, s.c_str(), static_cast<int>(s.length()));
+	if(s.empty())
+		return {};
+
+    char* output = curl_easy_escape(handle, s.data(), static_cast<int>(s.length()));
     if (output) {
         std::string result = output;
         curl_free(output);
         return result;
     }
-    return "";
+    return {};
 }
 
-std::string CurlHolder::urlDecode(const std::string& s) const {
+std::string CurlHolder::urlDecode(string_view_type s) const {
     assert(handle);
-    char* output = curl_easy_unescape(handle, s.c_str(), static_cast<int>(s.length()), nullptr);
+	if(s.empty())
+		return {};
+    char* output = curl_easy_unescape(handle, s.data(), static_cast<int>(s.length()), nullptr);
     if (output) {
         std::string result = output;
         curl_free(output);
         return result;
     }
-    return "";
+    return {};
 }
 } // namespace cpr

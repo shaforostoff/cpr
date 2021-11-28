@@ -6,6 +6,7 @@
 #include <string>
 
 #include <curl/curl.h>
+#include "cpr/cprtypes.h"
 
 namespace cpr {
 struct CurlHolder {
@@ -41,12 +42,12 @@ struct CurlHolder {
     /**
      * Uses curl_easy_escape(...) for escaping the given string.
      **/
-    std::string urlEncode(const std::string& s) const;
+    std::string urlEncode(string_view_type s) const;
 
     /**
      * Uses curl_easy_unescape(...) for unescaping the given string.
      **/
-    std::string urlDecode(const std::string& s) const;
+    std::string urlDecode(string_view_type s) const;
 };
 } // namespace cpr
 

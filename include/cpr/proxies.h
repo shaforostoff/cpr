@@ -12,11 +12,11 @@ class Proxies {
     Proxies(const std::initializer_list<std::pair<const std::string, std::string>>& hosts);
     Proxies(const std::map<std::string, std::string, std::less<>>& hosts);
 
-    bool has(const std::string& protocol) const;
+    bool has(std::string_view protocol) const;
     const std::string& operator[](const std::string& protocol);
 
   private:
-    std::map<std::string, std::string> hosts_;
+    std::map<std::string, std::string, std::less<>> hosts_;
 };
 } // namespace cpr
 

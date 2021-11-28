@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <ios>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -38,11 +39,11 @@ Cookies parseCookies(curl_slist* raw_cookies) {
     const int CURL_HTTP_COOKIE_SIZE = static_cast<int>(CurlHTTPCookieField::Value) + 1;
     Cookies cookies;
     for (curl_slist* nc = raw_cookies; nc; nc = nc->next) {
-        std::vector<std::string> tokens = cpr::util::split(nc->data, '\t');
+        std::vector<string_view_type> tokens = cpr::util::split(nc->data, '\t');
         while (tokens.size() < CURL_HTTP_COOKIE_SIZE) {
             tokens.emplace_back("");
         }
-        std::time_t expires = static_cast<time_t>(std::stoul(tokens.at(static_cast<size_t>(CurlHTTPCookieField::Expires))));
+        std::time_t expires = static_cast<time_t>(std::stoul(std::string(tokens.at(static_cast<size_t>(CurlHTTPCookieField::Expires)))));
         cookies.emplace_back(Cookie{
                 tokens.at(static_cast<size_t>(CurlHTTPCookieField::Name)),
                 tokens.at(static_cast<size_t>(CurlHTTPCookieField::Value)),
@@ -58,34 +59,25 @@ Cookies parseCookies(curl_slist* raw_cookies) {
 
 Header parseHeader(const std::string& headers, std::string* status_line, std::string* reason) {
     Header header;
-    std::vector<std::string> lines;
-    std::istringstream stream(headers);
-    {
-        std::string line;
-        while (std::getline(stream, line, '\n')) {
-            lines.push_back(line);
-        }
-    }
+	std::vector<string_view_type> lines = cpr::util::split(headers, '\n');
 
-    for (std::string& line : lines) {
+    for (string_view_type line : lines) {
         if (line.substr(0, 5) == "HTTP/") {
             // set the status_line if it was given
             if ((status_line != nullptr) || (reason != nullptr)) {
-                line.resize(std::min<size_t>(line.size(), line.find_last_not_of("\t\n\r ") + 1));
                 if (status_line != nullptr) {
-                    *status_line = line;
+                    *status_line = std::string(line);
                 }
 
                 // set the reason if it was given
                 if (reason != nullptr) {
                     size_t pos1 = line.find_first_of("\t ");
-                    size_t pos2 = std::string::npos;
-                    if (pos1 != std::string::npos) {
+                    size_t pos2 = string_view_type::npos;
+                    if (pos1 != string_view_type::npos) {
                         pos2 = line.find_first_of("\t ", pos1 + 1);
                     }
-                    if (pos2 != std::string::npos) {
-                        line.erase(0, pos2 + 1);
-                        *reason = line;
+                    if (pos2 != string_view_type::npos) {
+                        *reason = pos2 + 1 < line.size() ? std::string(line.substr(pos2 + 1)) : "";
                     }
                 }
             }
@@ -94,11 +86,16 @@ Header parseHeader(const std::string& headers, std::string* status_line, std::st
 
         if (line.length() > 0) {
             size_t found = line.find(':');
-            if (found != std::string::npos) {
-                std::string value = line.substr(found + 1);
-                value.erase(0, value.find_first_not_of("\t "));
-                value.resize(std::min<size_t>(value.size(), value.find_last_not_of("\t\n\r ") + 1));
-                header[line.substr(0, found)] = value;
+            if (found != string_view_type::npos) {
+                string_view_type value = line.substr(found + 1);
+				size_t notTabPos = value.find_first_not_of("\t ");
+				if(notTabPos != string_view_type::npos) {
+					value = value.substr(notTabPos);
+				}
+				else {
+					value = string_view_type();
+				}
+                header[std::string(line.substr(0, found))] = std::string(value);
             }
         }
     }
@@ -106,16 +103,26 @@ Header parseHeader(const std::string& headers, std::string* status_line, std::st
     return header;
 }
 
-std::vector<std::string> split(const std::string& to_split, char delimiter) {
-    std::vector<std::string> tokens;
+std::vector<std::string_view> split(std::string_view strv, char delims)
+{
+    std::vector<std::string_view> output;
+	output.reserve(std::count(strv.cbegin(), strv.cend(), delims));
+    size_t first = 0;
 
-    std::stringstream stream(to_split);
-    std::string item;
-    while (std::getline(stream, item, delimiter)) {
-        tokens.push_back(item);
+    while (first < strv.size())
+    {
+        const auto second = strv.find_first_of(delims, first);
+
+        if (first != second)
+            output.emplace_back(strv.substr(first, second-first));
+
+        if (second == std::string_view::npos)
+            break;
+
+        first = second + 1;
     }
 
-    return tokens;
+    return output;
 }
 
 size_t readUserFunction(char* ptr, size_t size, size_t nitems, const ReadCallback* read) {
@@ -154,7 +161,7 @@ int progressUserFunction(const ProgressCallback* progress, curl_off_t dltotal, c
 }
 
 int debugUserFunction(CURL* /*handle*/, curl_infotype type, char* data, size_t size, const DebugCallback* debug) {
-    (*debug)(static_cast<DebugCallback::InfoType>(type), std::string(data, size));
+    (*debug)(static_cast<DebugCallback::InfoType>(type), string_view_type(data, size));
     return 0;
 }
 
@@ -168,7 +175,7 @@ int debugUserFunction(CURL* /*handle*/, curl_infotype type, char* data, size_t s
  * std::string input = "Hello World!";
  * std::string result = holder.urlEncode(input);
  **/
-std::string urlEncode(const std::string& s) {
+std::string urlEncode(string_view_type s) {
     CurlHolder holder; // Create a temporary new holder for URL encoding
     return holder.urlEncode(s);
 }
@@ -183,7 +190,7 @@ std::string urlEncode(const std::string& s) {
  * std::string input = "Hello%20World%21";
  * std::string result = holder.urlDecode(input);
  **/
-std::string urlDecode(const std::string& s) {
+std::string urlDecode(string_view_type s) {
     CurlHolder holder; // Create a temporary new holder for URL decoding
     return holder.urlDecode(s);
 }
@@ -227,10 +234,16 @@ void secureStringClear(std::string& s) {
 #endif
 #endif
 
-bool isTrue(const std::string& s) {
-    std::string temp_string{s};
-    std::transform(temp_string.begin(), temp_string.end(), temp_string.begin(), [](unsigned char c) { return std::tolower(c); });
-    return temp_string == "true";
+inline bool cpr_iequals(std::string_view a, std::string_view b) {
+    return std::equal(a.begin(), a.end(),
+                      b.begin(), b.end(),
+                      [](char a, char b) {
+                          return tolower(a) == tolower(b);
+                      });
+}
+
+bool isTrue(std::string_view s) {
+    return cpr_iequals(s, "true");
 }
 
 } // namespace util
